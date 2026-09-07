@@ -1,0 +1,4 @@
+node_modules/
+states/
+*.log
+src/VolumeControl.exe
