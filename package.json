@@ -1,6 +1,6 @@
 {
   "name": "pizzaboy-volumecontrol",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Separate volume sliders for PizzaBoy's music and game sounds",
   "type": "commonjs",
