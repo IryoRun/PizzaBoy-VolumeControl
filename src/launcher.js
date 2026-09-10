@@ -118,4 +118,26 @@ function launch(gameDir, { viaSteam = true } = {}) {
   return { how: 'direct' };
 }
 
-module.exports = { APP_ID, EXE_NAME, findGameDir, ensureDebugPort, isGameRunning, launch, readPackageJson };
+/**
+ * Force-quit a running game process. Used when its chromium-args were just
+ * patched, since that flag only takes effect at process start -- a page
+ * reload cannot open a CDP port that was never listening.
+ */
+function quit() {
+  try {
+    execFileSync('taskkill', ['/F', '/IM', EXE_NAME], { stdio: 'ignore' });
+  } catch { /* already gone */ }
+}
+
+/** Poll until the game process has actually exited, or give up. */
+async function waitForExit(timeoutMs = 10000) {
+  const deadline = Date.now() + timeoutMs;
+  while (isGameRunning() && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return !isGameRunning();
+}
+
+module.exports = {
+  APP_ID, EXE_NAME, findGameDir, ensureDebugPort, isGameRunning, launch, quit, waitForExit, readPackageJson,
+};

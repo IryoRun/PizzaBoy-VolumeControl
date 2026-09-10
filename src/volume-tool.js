@@ -49,13 +49,27 @@ function saveVolumes(v) {
 /** Start the game if needed, then install the audio hook and reload. */
 async function connectAndInstall() {
   const gameDir = launcher.findGameDir();
-  const running = launcher.isGameRunning();
+
+  // Always ensure the debug port first. A Steam update can silently reset
+  // package.json, so a previously-patched install can un-patch itself.
+  const res = launcher.ensureDebugPort(gameDir, CDP_PORT);
+  if (res.status !== 'already-set') {
+    log(`added --remote-debugging-port=${CDP_PORT} to package.json (backup: package.json.original)`);
+  }
+
+  let running = launcher.isGameRunning();
+
+  // chromium-args only take effect at process start, so a running game whose
+  // package.json we just changed is still listening on no CDP port at all --
+  // no amount of reloading will ever open one. It has to be restarted.
+  if (running && res.status !== 'already-set') {
+    log('PizzaBoy is running with an outdated configuration -- restarting it once to enable the audio hook (unsaved progress is lost).');
+    launcher.quit();
+    running = !(await launcher.waitForExit());
+    if (running) throw new Error('PizzaBoy would not close. Close it by hand and try again.');
+  }
 
   if (!running) {
-    const res = launcher.ensureDebugPort(gameDir, CDP_PORT);
-    if (res.status !== 'already-set') {
-      log(`added --remote-debugging-port=${CDP_PORT} to package.json (backup: package.json.original)`);
-    }
     log('starting PizzaBoy via Steam...');
     launcher.launch(gameDir);
   } else {
